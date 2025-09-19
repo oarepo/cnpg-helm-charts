@@ -38,6 +38,10 @@ spec:
   resources:
     {{- toYaml . | nindent 4 }}
   {{ end }}
+  {{- with .Values.cluster.env }}
+  env:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- with .Values.cluster.affinity }}
   affinity:
     {{- toYaml . | nindent 4 }}
