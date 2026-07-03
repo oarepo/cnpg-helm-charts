@@ -1,6 +1,6 @@
 # cluster
 
-![Version: 0.6.0](https://img.shields.io/badge/Version-0.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Version: 0.7.0](https://img.shields.io/badge/Version-0.7.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 
 > **Warning**
 > ### This chart is under active development.
@@ -127,11 +127,11 @@ Kubernetes: `>=1.29.0-0`
 | backups.data.compression | string | `"gzip"` | Data compression method. One of `` (for no compression), `gzip`, `bzip2` or `snappy`. |
 | backups.data.encryption | string | `"AES256"` | Whether to instruct the storage provider to encrypt data files. One of `` (use the storage container default), `AES256` or `aws:kms`. |
 | backups.data.jobs | int | `2` | Number of data files to be archived or restored in parallel. |
-| backups.destinationPath | string | `""` | Overrides the provider specific default path. Defaults to: S3: s3://<bucket><path> Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path> Google: gs://<bucket><path> |
+| backups.destinationPath | string | `""` | Overrides the provider specific default path. |
 | backups.enabled | bool | `false` | You need to configure backups manually, so backups are disabled by default. |
 | backups.endpointCA | object | `{"create":false,"key":"","name":"","value":""}` | Specifies a CA bundle to validate a privately signed certificate. |
 | backups.endpointCA.create | bool | `false` | Creates a secret with the given value if true, otherwise uses an existing secret. |
-| backups.endpointURL | string | `""` | Overrides the provider specific default endpoint. Defaults to: S3: https://s3.<region>.amazonaws.com" |
+| backups.endpointURL | string | `""` | Overrides the provider specific default endpoint. |
 | backups.google.applicationCredentials | string | `""` |  |
 | backups.google.bucket | string | `""` |  |
 | backups.google.gkeEnvironment | bool | `false` |  |
@@ -174,12 +174,14 @@ Kubernetes: `>=1.29.0-0`
 | cluster.monitoring.disableDefaultQueries | bool | `false` | Whether the default queries should be injected. Set it to true if you don't want to inject default queries into the cluster. |
 | cluster.monitoring.enabled | bool | `false` | Whether to enable monitoring |
 | cluster.monitoring.instrumentation.logicalReplication | bool | `true` | Enable logical replication metrics |
+| cluster.monitoring.instrumentation.pgStatStatements | bool | `false` | Enable planning and execution statistics for all SQL statements. Increases shared memory usage. |
 | cluster.monitoring.podMonitor.enabled | bool | `true` | Whether to enable the PodMonitor |
 | cluster.monitoring.podMonitor.labels | object | `{}` | Additional labels to set on the generated PodMonitor resource. Add labels your monitoring stack requires (for example `team-name`). |
 | cluster.monitoring.podMonitor.metricRelabelings | list | `[]` | The list of metric relabelings for the PodMonitor. Applied to samples before ingestion. |
 | cluster.monitoring.podMonitor.relabelings | list | `[]` | The list of relabelings for the PodMonitor. Applied to samples before scraping. |
 | cluster.monitoring.prometheusRule.enabled | bool | `true` | Whether to enable the PrometheusRule automated alerts |
 | cluster.monitoring.prometheusRule.excludeRules | list | `[]` | Exclude specified rules |
+| cluster.monitoring.tls.enabled | bool | `false` | Whether to enable TLS on the metrics port. |
 | cluster.podSecurityContext | object | `{}` | Configure the Pod Security Context. See: https://cloudnative-pg.io/documentation/preview/security/ |
 | cluster.postgresGID | int | `-1` | The GID of the postgres user inside the image, defaults to 26 |
 | cluster.postgresUID | int | `-1` | The UID of the postgres user inside the image, defaults to 26 |
@@ -192,6 +194,7 @@ Kubernetes: `>=1.29.0-0`
 | cluster.primaryUpdateMethod | string | `"switchover"` | Method to follow to upgrade the primary server during a rolling update procedure, after all replicas have been successfully updated. It can be switchover (default) or restart. |
 | cluster.primaryUpdateStrategy | string | `"unsupervised"` | Strategy to follow to upgrade the primary server during a rolling update procedure, after all replicas have been successfully updated: it can be automated (unsupervised - default) or manual (supervised) |
 | cluster.priorityClassName | string | `""` |  |
+| cluster.replicationSlots | object | `{}` | Replication slot management. To make logical decoding slots survive failover for CDC consumers (e.g. Debezium), enable `highAvailability.synchronizeLogicalDecoding`, set `cluster.postgresql.parameters.hot_standby_feedback: "on"` and `cluster.postgresql.parameters.sync_replication_slots: "on"`, and ensure the CDC client creates its logical slot with `failover = true`. Requires CloudNativePG 1.27+ and PostgreSQL 17+ for native failover slots. See: https://cloudnative-pg.io/documentation/current/replication/#replication-slots |
 | cluster.resources | object | `{}` | Resources requirements of every generated Pod. Please refer to https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/ for more information. We strongly advise you use the same setting for limits and requests so that your cluster pods are given a Guaranteed QoS. See: https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/ |
 | cluster.roles | list | `[]` | This feature enables declarative management of existing roles, as well as the creation of new roles if they are not already present in the database. See: https://cloudnative-pg.io/documentation/current/declarative_role_management/ |
 | cluster.securityContext | object | `{}` | Configure Container Security Context. See: https://cloudnative-pg.io/documentation/preview/security/ |
@@ -203,7 +206,7 @@ Kubernetes: `>=1.29.0-0`
 | cluster.walStorage.enabled | bool | `false` |  |
 | cluster.walStorage.size | string | `"1Gi"` |  |
 | cluster.walStorage.storageClass | string | `""` |  |
-| databases | list | `[]` |  |
+| databases | list | `[]` | Database management configuration. |
 | fullnameOverride | string | `""` | Override the full name of the chart |
 | imageCatalog.create | bool | `true` | Whether to provision an image catalog. If imageCatalog.images is empty this option will be ignored. |
 | imageCatalog.images | list | `[]` | List of images to be provisioned in an image catalog. |
@@ -222,10 +225,10 @@ Kubernetes: `>=1.29.0-0`
 | recovery.backupName | string | `""` | Backup Recovery Method |
 | recovery.clusterName | string | `""` | The original cluster name when used in backups. Also known as serverName. |
 | recovery.database | string | `"app"` | Name of the database used by the application. Default: `app`. |
-| recovery.destinationPath | string | `""` | Overrides the provider specific default path. Defaults to: S3: s3://<bucket><path> Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path> Google: gs://<bucket><path> |
+| recovery.destinationPath | string | `""` | Overrides the provider specific default path. |
 | recovery.endpointCA | object | `{"create":false,"key":"","name":"","value":""}` | Specifies a CA bundle to validate a privately signed certificate. |
 | recovery.endpointCA.create | bool | `false` | Creates a secret with the given value if true, otherwise uses an existing secret. |
-| recovery.endpointURL | string | `""` | Overrides the provider specific default endpoint. Defaults to: S3: https://s3.<region>.amazonaws.com" Leave empty if using the default S3 endpoint |
+| recovery.endpointURL | string | `""` | Overrides the provider specific default endpoint. |
 | recovery.google.applicationCredentials | string | `""` |  |
 | recovery.google.bucket | string | `""` |  |
 | recovery.google.gkeEnvironment | bool | `false` |  |
@@ -272,6 +275,7 @@ Kubernetes: `>=1.29.0-0`
 | recovery.pgBaseBackup.source.sslRootCertSecret.key | string | `""` |  |
 | recovery.pgBaseBackup.source.sslRootCertSecret.name | string | `""` |  |
 | recovery.pgBaseBackup.source.username | string | `""` |  |
+| recovery.pitrTarget | object | `{"time":""}` | Point in time recovery target. Specify one of the following: |
 | recovery.pitrTarget.time | string | `""` | Time in RFC3339 format |
 | recovery.provider | string | `"s3"` | One of `s3`, `azure` or `google` |
 | recovery.s3.accessKey | string | `""` |  |
@@ -296,7 +300,7 @@ Kubernetes: `>=1.29.0-0`
 | replica.origin.objectStore.azure.storageKey | string | `""` |  |
 | replica.origin.objectStore.azure.storageSasToken | string | `""` |  |
 | replica.origin.objectStore.clusterName | string | `""` | The original cluster name when used in backups. Also known as serverName. |
-| replica.origin.objectStore.destinationPath | string | `""` | Overrides the provider specific default path. Defaults to: S3: s3://<bucket><path> Azure: https://<storageAccount>.<serviceName>.core.windows.net/<containerName><path> Google: gs://<bucket><path> |
+| replica.origin.objectStore.destinationPath | string | `""` | Overrides the provider specific default path. |
 | replica.origin.objectStore.endpointCA | object | `{"create":false,"key":"","name":"","value":""}` | Specifies a CA bundle to validate a privately signed certificate. |
 | replica.origin.objectStore.endpointCA.create | bool | `false` | Creates a secret with the given value if true, otherwise uses an existing secret. |
 | replica.origin.objectStore.google.applicationCredentials | string | `""` |  |
