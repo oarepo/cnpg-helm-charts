@@ -8,10 +8,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   labels:
-  {{- include "cluster.labels" . | nindent 4 }}
-  {{- with .Values.cluster.additionalLabels }}
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- include "cluster.labels" . | nindent 4 }}
 spec:
   instances: {{ .Values.cluster.instances }}
   {{- include "cluster.image" . | trim | nindent 2 }}
@@ -133,6 +130,11 @@ spec:
 
   {{- with .Values.cluster.securityContext }}
   securityContext:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.cluster.projectedVolumeTemplate }}
+  projectedVolumeTemplate:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
